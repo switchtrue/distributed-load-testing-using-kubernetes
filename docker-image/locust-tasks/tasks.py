@@ -16,6 +16,9 @@
 
 
 import uuid
+import time
+import random
+import json
 
 from datetime import datetime
 from locust import HttpLocust, TaskSet, task
@@ -25,17 +28,28 @@ class MetricsTaskSet(TaskSet):
     _deviceid = None
 
     def on_start(self):
-        self._deviceid = str(uuid.uuid4())
+        self._deviceid = str(uuid.uuid4()).replace('-', '')
 
     @task(1)
-    def login(self):
-        self.client.post(
-            '/login', {"deviceid": self._deviceid})
-
-    @task(999)
     def post_metrics(self):
-        self.client.post(
-            "/metrics", {"deviceid": self._deviceid, "timestamp": datetime.now()})
+        data = {
+            "metric": "operational.australia.nem.ec.meter.real_power",
+            "timestamp": int(time.time()),
+            "value": random.uniform(0, 2),
+            "tags": {
+                "DEPL_ID": self._deviceid,
+                "phase": 'blue'
+            }
+        }
+
+        headers = {'Content-Type': 'application/json'}
+
+        r = self.client.post('/api/put?details', data=json.dumps(data), headers=headers)
+
+#    @task(999)
+#    def post_metrics(self):
+#        self.client.post(
+#            "/metrics", {"deviceid": self._deviceid, "timestamp": datetime.now()})
 
 
 class MetricsLocust(HttpLocust):
